@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Orca Distribution & Ecotypes</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;1,400&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #07111f;
+            font-family: 'Source Sans 3', 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .leaflet-container { background: #0d1f3c; }
+
+        /* Header */
+        #header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            background: linear-gradient(180deg, rgba(7,17,31,0.97) 60%, transparent 100%);
+            padding: 18px 24px 30px;
+            pointer-events: none;
+        }
+
+        #header h1 {
+            font-family: 'Cinzel', Georgia, serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: #e8dcc8;
+            letter-spacing: 0.12em;
+            text-shadow: 0 0 30px rgba(0,212,170,0.4);
+        }
+
+        #header p {
+            font-size: 11.5px;
+            color: #6a88a8;
+            letter-spacing: 0.08em;
+            margin-top: 4px;
+        }
+
+        /* Filter bar */
+        #filters {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0 16px;
+        }
+
+        .filter-btn {
+            background: rgba(7, 17, 31, 0.88);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #a0b8c8;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 11.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            backdrop-filter: blur(8px);
+            letter-spacing: 0.06em;
+            white-space: nowrap;
+        }
+
+        .filter-btn:hover {
+            background: rgba(0, 212, 170, 0.15);
+            border-color: rgba(0, 212, 170, 0.5);
+            color: #00d4aa;
+        }
+
+        .filter-btn.active {
+            background: rgba(0, 212, 170, 0.18);
+            border-color: #00d4aa;
+            color: #00d4aa;
+        }
+
+        /* Legend */
+        #legend {
+            position: fixed;
+            bottom: 28px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(7, 17, 31, 0.93);
+            border: 1px solid rgba(0, 212, 170, 0.18);
+            border-radius: 10px;
+            padding: 14px 16px;
+            width: 200px;
+            backdrop-filter: blur(12px);
+        }
+
+        #legend h3 {
+            font-family: 'Cinzel', Georgia, serif;
+            font-size: 10px;
+            letter-spacing: 0.18em;
+            color: #00d4aa;
+            text-transform: uppercase;
+            margin-bottom: 11px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(0,212,170,0.18);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 7px;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,0.25);
+        }
+
+        .legend-label {
+            font-size: 11.5px;
+            color: #b8c8d8;
+            line-height: 1.3;
+        }
+
+        .legend-note {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            font-size: 10.5px;
+            color: #4a6a8a;
+            line-height: 1.6;
+            font-style: italic;
+        }
+
+        /* Popup styling */
+        .leaflet-popup-content-wrapper {
+            background: rgba(7, 17, 31, 0.97) !important;
+            border: 1px solid rgba(0,212,170,0.22) !important;
+            border-radius: 10px !important;
+            color: #e8dcc8 !important;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.7) !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+
+        .leaflet-popup-tip-container { display: none; }
+        .leaflet-popup-close-button {
+            color: #6a88a8 !important;
+            font-size: 18px !important;
+            top: 6px !important;
+            right: 10px !important;
+            z-index: 10;
+        }
+        .leaflet-popup-close-button:hover { color: #e8dcc8 !important; }
+        .leaflet-popup-content { margin: 0 !important; width: auto !important; }
+
+        .popup-header {
+            padding: 14px 16px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+
+        .popup-ecotype {
+            font-size: 9.5px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.45);
+            margin-bottom: 5px;
+        }
+
+        .popup-name {
+            font-family: 'Cinzel', Georgia, serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+            line-height: 1.35;
+        }
+
+        .popup-body {
+            padding: 12px 16px;
+        }
+
+        .popup-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .popup-stat:last-of-type { border-bottom: none; }
+
+        .stat-label {
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #4a6a8a;
+            flex-shrink: 0;
+            padding-top: 1px;
+        }
+
+        .stat-value {
+            font-size: 12px;
+            color: #c8d8e8;
+            text-align: right;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 9.5px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .popup-desc {
+            margin-top: 10px;
+            font-size: 12px;
+            line-height: 1.65;
+            color: #8a9aaa;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            padding-top: 10px;
+            font-style: italic;
+        }
+
+        /* Count badge */
+        #count-badge {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(7, 17, 31, 0.88);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 11px;
+            color: #6a88a8;
+            backdrop-filter: blur(8px);
+        }
+
+        #count-badge span {
+            color: #00d4aa;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <h1>🐋 &nbsp;Global Orca Distribution & Ecotypes</h1>
+    <p>Click any population circle or marker for details &nbsp;·&nbsp; Filter by diet type below</p>
+</div>
+
+<div id="filters">
+    <button class="filter-btn active" onclick="filterByDiet('all', this)">All Populations</button>
+    <button class="filter-btn" onclick="filterByDiet('fish', this)">🐟 Fish Eaters</button>
+    <button class="filter-btn" onclick="filterByDiet('mammal', this)">🦭 Mammal Hunters</button>
+    <button class="filter-btn" onclick="filterByDiet('mixed', this)">🔀 Mixed / Opportunistic</button>
+    <button class="filter-btn" onclick="filterByDiet('endangered', this)">⚠️ Critically Endangered</button>
+</div>
+
+<div id="map"></div>
+
+<div id="count-badge">Showing <span id="visible-count">17</span> of 17 populations</div>
+
+<div id="legend">
+    <h3>Diet Category</h3>
+    <div class="legend-item">
+        <div class="legend-dot" style="background:#00d4aa;"></div>
+        <span class="legend-label">Fish specialists</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-dot" style="background:#ff6b35;"></div>
+        <span class="legend-label">Marine mammal hunters</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-dot" style="background:#cc44ff;"></div>
+        <span class="legend-label">Cetacean hunters (Type 2)</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-dot" style="background:#ffd700;"></div>
+        <span class="legend-label">Mixed / opportunistic</span>
+    </div>
+    <div class="legend-item">
+        <div class="legend-dot" style="background:#ff2244;"></div>
+        <span class="legend-label">Critically endangered</span>
+    </div>
+    <div class="legend-note">
+        Dashed circles show approximate range area. Circle size is indicative only.
+    </div>
+</div>
+
+<script>
+const map = L.map('map', {
+    center: [15, 0],
+    zoom: 2,
+    minZoom: 1,
+    maxZoom: 9,
+    zoomControl: false,
+    worldCopyJump: true
+});
+
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 19
+}).addTo(map);
+
+const populations = [
+    {
+        id: 'southern_resident',
+        name: 'Southern Resident Killer Whales',
+        ecotype: 'Northeast Pacific Resident',
+        center: [47.5, -123.5],
+        rangeRadius: 180000,
+        diet: 'endangered',
+        color: '#ff2244',
+        population: '~73 individuals (2025)',
+        status: 'ENDANGERED',
+        statusColor: '#ff2244',
+        range: 'Pacific Northwest inland waters, Washington & BC coast',
+        prey: 'Chinook salmon (96% of diet)',
+        desc: 'The most endangered orca population in the world. Three pods (J, K, L) decimated by salmon depletion, vessel noise and PCB contamination. Facing extinction without significant salmon recovery.'
+    },
+    {
+        id: 'northern_resident',
+        name: 'Northern Resident Killer Whales',
+        ecotype: 'Northeast Pacific Resident',
+        center: [52.5, -129],
+        rangeRadius: 420000,
+        diet: 'fish',
+        color: '#00d4aa',
+        population: '~300+ individuals',
+        status: 'STABLE',
+        statusColor: '#00d4aa',
+        range: 'SE Alaska to northern Vancouver Island',
+        prey: 'Chinook & other salmon',
+        desc: 'Healthy fish-eating population in 16 pods across 3 clans. Offspring stay with their mother for life. Famous for complex vocalisations — each pod has its own dialect.'
+    },
+    {
+        id: 'biggs',
+        name: "Bigg's (Transient) Killer Whales",
+        ecotype: 'Northeast Pacific Transient',
+        center: [50, -143],
+        rangeRadius: 950000,
+        diet: 'mammal',
+        color: '#ff6b35',
+        population: '~350+ individuals',
+        status: 'STABLE',
+        statusColor: '#00d4aa',
+        range: 'S. California to Arctic Circle, offshore Pacific',
+        prey: 'Harbour seals, porpoises, sea lions, grey whale calves',
+        desc: 'Mammal-hunting specialists sharing the same waters as Residents but never interacting. Travel in small, stealthy groups. Can travel hundreds of miles to follow prey. Diverged ~700,000 years ago through cultural isolation.'
+    },
+    {
+        id: 'offshore',
+        name: 'Offshore Killer Whales',
+        ecotype: 'Northeast Pacific Offshore',
+        center: [42, -150],
+        rangeRadius: 850000,
+        diet: 'fish',
+        color: '#00d4aa',
+        population: '~200–300+ (poorly known)',
+        status: 'DATA DEFICIENT',
+        statusColor: '#ffd700',
+        range: 'Open North Pacific, outer coast',
+        prey: 'Sharks (inferred from worn teeth), fish',
+        desc: 'Least studied Pacific ecotype. Travel in large pods of 20–75. Distinctively worn teeth suggest tough-skinned prey — likely sharks. Rarely come close to shore and are therefore hard to study.'
+    },
+    {
+        id: 'ne_atlantic_type1',
+        name: 'Norwegian / Icelandic Orca (Type 1)',
+        ecotype: 'Northeast Atlantic — Fish Eaters',
+        center: [66, 4],
+        rangeRadius: 1200000,
+        diet: 'fish',
+        color: '#00d4aa',
+        population: '~5,000–8,000 (Norway & Iceland combined)',
+        status: 'HEALTHY',
+        statusColor: '#00d4aa',
+        range: 'Norwegian coast, Iceland, Faroe Islands, North Sea',
+        prey: 'Herring & mackerel (primary); seals (some subgroups)',
+        desc: 'Most abundant European population. Famous for carousel feeding — herding herring into dense balls then stunning them with tail slaps. Some subgroups have culturally switched to seal hunting. Over 1,000 individuals catalogued in Icelandic waters alone.'
+    },
+    {
+        id: 'northern_isles',
+        name: 'Northern Isles Community',
+        ecotype: 'Scotland / Iceland Seasonal Migrants',
+        center: [60.5, -2],
+        rangeRadius: 380000,
+        diet: 'mixed',
+        color: '#ffd700',
+        population: 'Unknown — part of Icelandic population',
+        status: 'APPARENTLY HEALTHY',
+        statusColor: '#00d4aa',
+        range: 'Orkney, Shetland, N. Scotland, Iceland, Faroe Islands',
+        prey: 'Grey seals, eider ducks (Scotland); herring (Iceland)',
+        desc: 'Pods that winter in Iceland on herring then migrate ~1,400km to Scotland each spring to hunt seals. In 2025, confirmed as far south as the Farne Islands, Northumberland — the "27s" and "65s" pods identified by photo-ID. Sightings now annual in Northumberland.'
+    },
+    {
+        id: 'west_coast_community',
+        name: 'West Coast Community',
+        ecotype: 'Northeast Atlantic Type 2 — Functionally Extinct',
+        center: [56.5, -9],
+        rangeRadius: 250000,
+        diet: 'endangered',
+        color: '#ff2244',
+        population: '2 individuals: John Coe & Aquarius',
+        status: 'FUNCTIONALLY EXTINCT',
+        statusColor: '#ff2244',
+        range: 'Hebrides, W. Scotland, Ireland, Wales',
+        prey: 'Cetaceans (porpoises, minke whales)',
+        desc: 'A tragedy of PCB pollution. Once ~20 individuals, now two elderly males — both too old to reproduce. Deceased member Lulu had PCB levels 100× the toxicity threshold. Genetically most similar to Antarctic orca. Extinction is certain and permanent.'
+    },
+    {
+        id: 'gibraltar',
+        name: 'Strait of Gibraltar / Iberian Orca',
+        ecotype: 'Possible Third North Atlantic Ecotype',
+        center: [36.2, -7.5],
+        rangeRadius: 380000,
+        diet: 'fish',
+        color: '#00d4aa',
+        population: '~39 in core group',
+        status: 'SMALL / VULNERABLE',
+        statusColor: '#ffd700',
+        range: 'Strait of Gibraltar, SW Spain, Portugal coast',
+        prey: 'Atlantic bluefin tuna',
+        desc: 'World-famous since 2020 for ramming and sinking sailing vessels — 500+ boats damaged. Scientists believe this is a learned play or hunting behaviour, not aggression. Likely a distinct ecotype adapted to tuna hunting in the Atlantic approaches.'
+    },
+    {
+        id: 'nw_atlantic',
+        name: 'Northwest Atlantic Orca',
+        ecotype: 'Northwest Atlantic',
+        center: [53, -54],
+        rangeRadius: 700000,
+        diet: 'mammal',
+        color: '#ff6b35',
+        population: 'Unknown',
+        status: 'DATA DEFICIENT',
+        statusColor: '#ffd700',
+        range: 'Labrador, Newfoundland, eastern Canadian Arctic',
+        prey: 'Belugas, narwhals, baleen whales',
+        desc: 'Expanding range into the Arctic as sea ice declines. Ice historically acted as a barrier protecting prey; its loss has opened vast new hunting grounds. Presence is reshaping Arctic ecosystems that have no evolutionary history of orca predation.'
+    },
+    {
+        id: 'antarctic_A',
+        name: 'Antarctic Type A',
+        ecotype: 'Southern Ocean — Open Water Specialist',
+        center: [-62, -15],
+        rangeRadius: 2500000,
+        diet: 'mammal',
+        color: '#cc44ff',
+        population: '~10,000+',
+        status: 'COMMON',
+        statusColor: '#00d4aa',
+        range: 'Open Antarctic waters, ice-free zones circumpolarly',
+        prey: 'Minke whales (specialist)',
+        desc: 'The "classic" large Antarctic orca. Live in open water away from ice and systematically hunt minke whales in coordinated attacks. Classic black-and-white pattern with a medium eye patch. Among the best candidates for future species-level reclassification.'
+    },
+    {
+        id: 'antarctic_B1',
+        name: 'Antarctic Type B1 (Pack Ice)',
+        ecotype: 'Southern Ocean — Pack Ice Hunter',
+        center: [-70, -55],
+        rangeRadius: 1400000,
+        diet: 'mammal',
+        color: '#ff6b35',
+        population: '~2,000+',
+        status: 'RELATIVELY COMMON',
+        statusColor: '#00d4aa',
+        range: 'Antarctic pack ice, Peninsula waters',
+        prey: 'Weddell seals (wave-washing technique)',
+        desc: 'Famous for the wave-washing technique — groups swim in coordinated formation to create waves that wash seals off ice floes. Have a yellowish diatom skin coating. Documented making migrations all the way to tropical South America — possibly to shed skin parasites.'
+    },
+    {
+        id: 'antarctic_B2',
+        name: 'Antarctic Type B2 (Gerlache)',
+        ecotype: 'Southern Ocean — Penguin Hunter',
+        center: [-65, -63.5],
+        rangeRadius: 500000,
+        diet: 'mammal',
+        color: '#ff6b35',
+        population: 'Unknown',
+        status: 'DATA DEFICIENT',
+        statusColor: '#ffd700',
+        range: 'Gerlache Strait, Antarctic Peninsula',
+        prey: 'Penguins',
+        desc: 'Recently split from Type B1. Smaller, specialising in penguin hunting in the narrow channels of the Gerlache Strait. Also carry the yellowish diatom skin coating. Diet specialisation on penguins is a striking example of orca cultural divergence.'
+    },
+    {
+        id: 'antarctic_C',
+        name: 'Antarctic Type C (Ross Sea)',
+        ecotype: 'Southern Ocean — Fish Specialist',
+        center: [-75, 168],
+        rangeRadius: 1100000,
+        diet: 'fish',
+        color: '#00d4aa',
+        population: '~2,000+',
+        status: 'RELATIVELY COMMON',
+        statusColor: '#00d4aa',
+        range: 'Ross Sea, East Antarctic pack ice',
+        prey: 'Antarctic toothfish',
+        desc: 'The smallest orca ecotype — males reach only ~6m. Heavily yellowish from diatoms, with a dramatically slanted eye patch. Navigate pack ice via leads (channels) to follow toothfish. Their similarity to the West Coast Community suggests an ancient shared lineage.'
+    },
+    {
+        id: 'antarctic_D',
+        name: 'Antarctic Type D (Subantarctic)',
+        ecotype: 'Subantarctic — Rarest Ecotype',
+        center: [-50, -65],
+        rangeRadius: 850000,
+        diet: 'fish',
+        color: '#ffd700',
+        population: 'Very small / unknown',
+        status: 'EXTREMELY RARE',
+        statusColor: '#ff2244',
+        range: 'Subantarctic waters, Chile, Kerguelen',
+        prey: 'Patagonian toothfish',
+        desc: 'The rarest and most recently confirmed ecotype, discovered retrospectively from a 1955 New Zealand mass stranding. Has the most distinctive appearance of any orca — tiny eye patches, rounded snout, stubby dorsal fin. Only a handful of confirmed sightings ever recorded.'
+    },
+    {
+        id: 'new_zealand',
+        name: 'New Zealand Orca',
+        ecotype: 'Southwest Pacific',
+        center: [-39, 174],
+        rangeRadius: 430000,
+        diet: 'mixed',
+        color: '#ffd700',
+        population: '~117 identified individuals',
+        status: 'SMALL / ISOLATED',
+        statusColor: '#ffd700',
+        range: 'New Zealand coastal waters',
+        prey: 'Rays, sharks, fish, dolphins — highly diverse',
+        desc: 'Does not fit neatly into any described ecotype. Hunts a remarkably diverse prey range including eagle rays, stingrays, multiple shark species and other dolphins. A small, isolated population that appears not to interbreed with neighbouring orca.'
+    },
+    {
+        id: 'crozet',
+        name: 'Crozet Islands Orca',
+        ecotype: 'Indian Ocean — Unique Mixed Feeders',
+        center: [-46, 51],
+        rangeRadius: 420000,
+        diet: 'mixed',
+        color: '#ffd700',
+        population: 'Small / unknown',
+        status: 'DATA DEFICIENT',
+        statusColor: '#ffd700',
+        range: 'Crozet Islands, southern Indian Ocean',
+        prey: 'Elephant seal pups AND fish (seasonally)',
+        desc: 'Unique — the only documented population to feed on BOTH mammals and fish. Beach themselves to grab elephant seal pups in the surf, then switch to fish when seals depart. A living example of how dietary generalism may precede ecotype divergence.'
+    },
+    {
+        id: 'indian_ocean',
+        name: 'Indian Ocean Orca',
+        ecotype: 'Indian Ocean — Poorly Studied',
+        center: [-5, 64],
+        rangeRadius: 1000000,
+        diet: 'mixed',
+        color: '#ffd700',
+        population: '~50+ catalogued',
+        status: 'DATA DEFICIENT',
+        statusColor: '#ffd700',
+        range: 'Indian Ocean, Kenya to Indonesia',
+        prey: 'Varied — poorly understood',
+        desc: 'Little-studied warm-water orca. Sightings recorded from the Red Sea to Indonesia, with two individuals documented in the Persian Gulf (2008). May represent multiple distinct populations. Diet, social structure and population size remain largely unknown.'
+    }
+];
+
+const layerGroups = {};
+
+function createMarkerIcon(color, isEndangered) {
+    const shadow = isEndangered
+        ? `0 0 0 3px ${color}44, 0 0 16px ${color}88`
+        : `0 0 10px ${color}66`;
+    return L.divIcon({
+        className: '',
+        html: `<div style="
+            width: 14px; height: 14px;
+            background: ${color};
+            border: 2.5px solid rgba(255,255,255,0.75);
+            border-radius: 50%;
+            box-shadow: ${shadow};
+            cursor: pointer;
+            transition: transform 0.15s;
+        "></div>`,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7]
+    });
+}
+
+function buildPopup(pop) {
+    return `
+        <div style="min-width:270px; max-width:300px;">
+            <div class="popup-header" style="background: linear-gradient(135deg, ${pop.color}22, ${pop.color}08);">
+                <div class="popup-ecotype">${pop.ecotype}</div>
+                <div class="popup-name">${pop.name}</div>
+            </div>
+            <div class="popup-body">
+                <div class="popup-stat">
+                    <span class="stat-label">Population</span>
+                    <span class="stat-value">${pop.population}</span>
+                </div>
+                <div class="popup-stat">
+                    <span class="stat-label">Status</span>
+                    <span class="stat-value">
+                        <span class="status-pill" style="background:${pop.statusColor}18; color:${pop.statusColor}; border:1px solid ${pop.statusColor}40;">${pop.status}</span>
+                    </span>
+                </div>
+                <div class="popup-stat">
+                    <span class="stat-label">Range</span>
+                    <span class="stat-value">${pop.range}</span>
+                </div>
+                <div class="popup-stat">
+                    <span class="stat-label">Primary Prey</span>
+                    <span class="stat-value">${pop.prey}</span>
+                </div>
+                <div class="popup-desc">${pop.desc}</div>
+            </div>
+        </div>
+    `;
+}
+
+populations.forEach(pop => {
+    const popupHtml = buildPopup(pop);
+    const isEndangered = pop.diet === 'endangered';
+
+    const rangeCircle = L.circle(pop.center, {
+        radius: pop.rangeRadius,
+        fillColor: pop.color,
+        fillOpacity: isEndangered ? 0.07 : 0.06,
+        color: pop.color,
+        weight: 1,
+        opacity: isEndangered ? 0.45 : 0.28,
+        dashArray: '5 6'
+    }).bindPopup(popupHtml, { maxWidth: 320 });
+
+    const marker = L.marker(pop.center, {
+        icon: createMarkerIcon(pop.color, isEndangered)
+    }).bindPopup(popupHtml, { maxWidth: 320 });
+
+    const group = L.layerGroup([rangeCircle, marker]);
+    group.addTo(map);
+    layerGroups[pop.id] = { group, pop };
+});
+
+function filterByDiet(diet, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    let visible = 0;
+    Object.values(layerGroups).forEach(({ group, pop }) => {
+        let show = false;
+        if (diet === 'all') {
+            show = true;
+        } else if (diet === 'endangered') {
+            show = pop.diet === 'endangered';
+        } else {
+            show = pop.diet === diet;
+        }
+
+        if (show) {
+            map.addLayer(group);
+            visible++;
+        } else {
+            map.removeLayer(group);
+        }
+    });
+
+    document.getElementById('visible-count').textContent = visible;
+}
+
+// Subtle graticule-style grid
+const gridStyle = { color: 'rgba(255,255,255,0.03)', weight: 0.5 };
+for (let lat = -90; lat <= 90; lat += 30) {
+    L.polyline([[-90, lat < 90 ? -180 : -180], [90, lat < 90 ? -180 : -180]], gridStyle);
+}
+</script>
+</body>
+</html>
